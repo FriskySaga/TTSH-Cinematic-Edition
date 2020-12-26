@@ -1334,6 +1334,7 @@ dclass DistributedSellbotBoss : DistributedBossCog {
 dclass DistributedCashbotBoss : DistributedBossCog {
   setState(string) broadcast ram;
   setBossDamage(uint16) broadcast ram;
+  setCraneSpawn(bool, uint8, uint32) broadcast ram;
   setRewardId(uint16) broadcast ram;
   applyReward() airecv clsend;
 };

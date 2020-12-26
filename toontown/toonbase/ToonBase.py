@@ -47,6 +47,7 @@ class ToonBase(OTPBase.OTPBase):
         self.endlessQuietZone = False
         self.wantDynamicShadows = 0
         self.exitErrorCode = 0
+        self.guiToggleDisabled = False
         camera.setPosHpr(0, 0, 0, 0, 0, 0)
         self.camLens.setMinFov(ToontownGlobals.DefaultCameraFov / (4. / 3.))
         self.camLens.setNearFar(ToontownGlobals.DefaultCameraNear, ToontownGlobals.DefaultCameraFar)
@@ -141,6 +142,9 @@ class ToonBase(OTPBase.OTPBase):
         self.oldY = max(1, base.win.getYSize())
         self.aspectRatio = float(self.oldX) / self.oldY
         self.aspect2d.setAntialias(AntialiasAttrib.MMultisample)
+
+        self.accept('f3', self.toggleGui)
+        self.accept('f4', self.toggleNametags)
         return
 
     def setSprinting(self):
@@ -242,6 +246,34 @@ class ToonBase(OTPBase.OTPBase):
 
     def __walking(self, pressed):
         self.walking = pressed
+
+    def toggleGui(self):
+        if not self.guiToggleDisabled:
+            if aspect2d.isHidden():
+                aspect2d.show()
+            else:
+                aspect2d.hide()
+
+    def toggleNametags(self):
+        nametags3d = render.findAllMatches('**/nametag3d')
+        nametags2d = render2d.findAllMatches('**/Nametag2d')
+        hide = False
+        for nametag in nametags2d:
+            if not nametag.isHidden():
+                hide = True
+        for nametag in nametags3d:
+            if not nametag.isHidden():
+                hide = True
+        for nametag in nametags3d:
+            if hide:
+                nametag.hide()
+            else:
+                nametag.show()
+        for nametag in nametags2d:
+            if hide:
+                nametag.hide()
+            else:
+                nametag.show()
 
     def takeScreenShot(self):
         if not os.path.exists('screenshots/'):

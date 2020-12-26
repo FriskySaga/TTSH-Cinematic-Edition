@@ -513,6 +513,7 @@ class DistributedLawbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FSM
         self.waitForNextAttack(5)
         self.notify.debug('battleDifficulty = %d' % self.battleDifficulty)
         self.numToonsAtStart = len(self.involvedToons)
+        self.__deleteChairs()
 
     def getToonDifficulty(self):
         highestCogSuitLevel = 0
@@ -779,17 +780,35 @@ class DistributedLawbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FSM
 
     def __makeLawyers(self):
         self.__resetLawyers()
-        lawCogChoices = ['b',
-         'dt',
-         'ac',
-         'bs',
-         'sd',
-         'le',
-         'bw']
+        lawCogChoices = ['b','dt', 'ac', 'bs', 'sd', 'le', 'bw']
         for i in xrange(self.numLawyers):
             suit = DistributedLawbotBossSuitAI.DistributedLawbotBossSuitAI(self.air, None)
             suit.dna = SuitDNA.SuitDNA()
             lawCog = random.choice(lawCogChoices)
+            if (i == 0): lawCog = 'bw' #Cog 8
+            elif (i == 1): lawCog = 'bs' #Cog 7
+            elif (i == 2): lawCog = 'dt' #Cog 6
+            elif (i == 3): lawCog = 'dt' #Cog 5
+            elif (i == 4): lawCog = 'dt' #Cog 4
+            elif (i == 5): lawCog = 'dt' #Cog 3
+            elif (i == 6): lawCog = 'bs' #Cog 2
+            elif (i == 7): lawCog = 'bw' #Cog 1
+            elif (i == 8): lawCog = 'bw' #Cog 9
+            elif (i == 9): lawCog = 'bw' #Cog 10
+            elif (i == 10): lawCog = 'bw' #Cog 11/8m
+            elif (i == 11): lawCog = 'bs' #Cog 12/7m
+            elif (i == 12): lawCog = 'dt' #Cog 6m
+            elif (i == 13): lawCog = 'dt' #Cog 5m
+            elif (i == 14): lawCog = 'dt' #Cog 4m
+            elif (i == 15): lawCog = 'dt' #Cog 3m
+            elif (i == 16): lawCog = 'bs' #Cog 2m
+            elif (i == 17): lawCog = 'bw' #Cog 1m
+            elif (i == 18): lawCog = 'bw' #Cog 9m
+            elif (i == 19): lawCog = 'bw' #Cog 10m
+            elif (i == 20): lawCog = 'b' #Cog 21/11
+            elif (i == 21): lawCog = 'b' #Cog 22/11m
+            elif (i == 22): lawCog = 'b' #Cog 23/12
+            elif (i == 23): lawCog = 'b' #Cog 24/12m
             suit.dna.newSuit(lawCog)
             suit.setPosHpr(*ToontownGlobals.LawbotBossLawyerPosHprs[i])
             suit.setBoss(self)

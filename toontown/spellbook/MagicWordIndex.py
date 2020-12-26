@@ -81,6 +81,7 @@ class MagicWord:
         self.invokerId = invokerId
         self.targets = targets
         self.args = args
+        self.posHprString = None
         if self.__class__.__name__ != "MagicWord": # If not the base class,
             self.aliases = self.aliases if self.aliases is not None else [] # if we use [] by default, it might get overwritten
             self.aliases.insert(0, self.__class__.__name__)  # add the class name to the alias list,
@@ -457,6 +458,218 @@ class ToggleCollisionsOff(MagicWord):
         toon.collisionsOff()
 
 
+class GetPos(MagicWord):
+    desc = "Get the current position of your toon."
+    execLocation = MagicWordConfig.EXEC_LOC_CLIENT
+
+    def handleWord(self, invoker, avId, toon, *args):
+        if not base.localAvatar:
+            return "Your Toon does not exist!"
+        return str(base.localAvatar.getPos())
+
+
+class SetPos(MagicWord):
+    desc = "Set the current position of your Toon."
+    execLocation = MagicWordConfig.EXEC_LOC_CLIENT
+    arguments = [("x", float, True), ("y", float, True), ("z", float, True)]
+
+    def handleWord(self, invoker, avId, toon, *args):
+        toonX = args[0]
+        toonY = args[1]
+        toonZ = args[2]
+        if not base.localAvatar:
+            return "Your Toon does not exist!"
+        for arg in args:
+            if not -2500 <= arg <= 2500:
+                return "This position is too far out!"
+        base.localAvatar.setPos(toonX, toonY, toonZ)
+
+
+class GetHpr(MagicWord):
+    desc = "Returns the rotation value of your Toon."
+    execLocation = MagicWordConfig.EXEC_LOC_CLIENT
+
+    def handleWord(self, invoker, avId, toon, *args):
+        if not base.localAvatar:
+            return "No Toon found!"
+        return str(base.localAvatar.getHpr())
+
+
+class SetHpr(MagicWord):
+    desc = "Set the rotation value of your Toon."
+    execLocation = MagicWordConfig.EXEC_LOC_CLIENT
+    arguments = [("h", int, True), ("p", int, True), ("r", int, True), ("part", str, False, '')]
+
+    def handleWord(self, invoker, avId, toon, *args):
+        toonH = args[0]
+
+        if not base.localAvatar:
+            return "No Toon found!"
+
+        part = args[3].lower()
+
+        if part in ('head', 'torso', 'legs'):
+            for lod in toon.getLODNames():
+                base.localAvatar.getPart(part, lod).setH(toonH)
+
+        base.localAvatar.setHpr(args[0], args[1], args[2])
+		
+class PrintPosHpr(MagicWord):
+    aliases = ['pph']
+    desc = "Print Pos Hpr"
+    execLocation = MagicWordConfig.EXEC_LOC_CLIENT
+
+    def handleWord(self, invoker, avId, toon, *args):
+        count = 0
+        def printPosHpr(count):
+            count += 1
+            if count <= 100:
+                print("%s %s" % (toon.getPos(), toon.getHpr()))
+                taskMgr.doMethodLater(0.1, printPosHpr, "print the damn points", extraArgs=[count])
+            else:
+                return
+                
+        printPosHpr(0)  
+        
+		
+class camera(MagicWord):
+    aliases = ['cam']
+    desc = "Set a movie sequence"
+    execLocation = MagicWordConfig.EXEC_LOC_CLIENT
+    arguments = [("command", str, True), ("x", float, False, 0), ("y", float, False, 0), ("z", float, False, 0), ("h", float, False, 0), ("p", float, False, 0), ("r", float, False, 0), ("duration", float, False, 1)]
+    
+    def handleWord(self, invoker, avId, toon, *args):
+        command = args[0]
+        x = args[1]
+        y = args[2]
+        z = args[3]
+        h = args[4]
+        p = args[5]
+        r = args[6]
+        duration = args[7]
+        valid_commands = ['startpoint', 'addpoint', 'clear', 'play', 'list', 'ease']
+        if command not in valid_commands:
+            return "Invalid command! Please use ~camera startpoint or ~camera addpoint."
+        if command == 'startpoint':
+            if None in [x, y, z, h, p, r]:
+                return "The command syntax is [~camera startpoint x y z h p r]!"
+            base.localAvatar.camStart = [x, y, z, h, p, r]
+            return "%d %d %d %d %d %d is set as the starting point!" % (x, y, z, h, p, r)
+        elif command == 'addpoint':
+            if None in [x, y, z, h, p, r]:
+                return "The command syntax is [~camera addpoint x y z h p r duration]!"
+            base.localAvatar.camPoints.append([x, y, z, h, p, r, duration])
+            return "Point %d %d %d %d %d %d with a duration of %d was added!" % (x, y, z, h, p, r, duration)
+        elif command == 'addpointtoon':
+            base.localAvatar.camPoints.append([x, y, z, h, p, r, duration])
+            return "Point %d %d %d %d %d %d with a duration of %d was added!" % (x, y, z, h, p, r, duration)
+        elif command == 'clear':
+            base.localAvatar.camPoints = []
+            return "Successfully cleared all camera points!"
+        elif command == 'play':
+            start = base.localAvatar.camStart
+            camera = base.camera
+            track = Sequence()
+            track.append(Func(base.localAvatar.stopUpdateSmartCamera))
+            track.append(Func(camera.wrtReparentTo, render))
+            track.append(Func(camera.setPosHpr, start[0], start[1], start[2], start[3], start[4], start[5]))
+            for point in base.localAvatar.camPoints:
+                track.append(camera.posHprInterval(point[6], Point3(point[0], point[1], point[2]), Point3(point[3], point[4], point[5])))
+            track.append(Func(camera.wrtReparentTo, base.localAvatar))
+            track.append(Func(base.localAvatar.startUpdateSmartCamera))
+            track.start()
+        elif command == 'ease':
+            start = base.localAvatar.camStart
+            camera = base.camera
+            track = Sequence()
+            track.append(Func(base.localAvatar.stopUpdateSmartCamera))
+            track.append(Func(camera.wrtReparentTo, render))
+            track.append(Func(camera.setPosHpr, start[0], start[1], start[2], start[3], start[4], start[5]))
+            for point in base.localAvatar.camPoints:
+                track.append(camera.posHprInterval(point[6], Point3(point[0], point[1], point[2]), Point3(point[3], point[4], point[5]), blendType='easeInOut'))
+            track.append(Func(camera.wrtReparentTo, base.localAvatar))
+            track.append(Func(base.localAvatar.startUpdateSmartCamera))
+            track.start()
+        elif command == 'list':
+            start = base.localAvatar.camStart
+            points = "[x%d, y%d, z%d, h%d, p%d, r%d]" % (start[0], start[1], start[2], start[3], start[4], start[5])
+            for point in base.localAvatar.camPoints:
+                points = points + "\n [x%d, y%d, z%d, h%d, p%d, r%d, dur%d]" % (point[0], point[1], point[2], point[3], point[4], point[5], point[6])
+            return points
+
+
+class camera(MagicWord):
+    aliases = ['cam']
+    desc = "Set a movie sequence"
+    execLocation = MagicWordConfig.EXEC_LOC_CLIENT
+    arguments = [("command", str, True), ("x", float, False, 0), ("y", float, False, 0), ("z", float, False, 0), ("h", float, False, 0), ("p", float, False, 0), ("r", float, False, 0), ("duration", float, False, 1)]
+    
+    def handleWord(self, invoker, avId, toon, *args):
+        command = args[0]
+        x = args[1]
+        y = args[2]
+        z = args[3]
+        h = args[4]
+        p = args[5]
+        r = args[6]
+        duration = args[7]
+        valid_commands = ['startpoint', 'addpoint', 'clear', 'play', 'list', 'ease']
+        if command not in valid_commands:
+            return "Invalid command! Please use ~camera startpoint or ~camera addpoint."
+        if command == 'startpoint':
+            if None in [x, y, z, h, p, r]:
+                return "The command syntax is [~camera startpoint x y z h p r]!"
+            base.localAvatar.camStart = [x, y, z, h, p, r]
+            return "%d %d %d %d %d %d is set as the starting point!" % (x, y, z, h, p, r)
+        elif command == 'addpoint':
+            if None in [x, y, z, h, p, r]:
+                return "The command syntax is [~camera addpoint x y z h p r duration]!"
+            base.localAvatar.camPoints.append([x, y, z, h, p, r, duration])
+            return "Point %d %d %d %d %d %d with a duration of %d was added!" % (x, y, z, h, p, r, duration)
+        elif command == 'clear':
+            base.localAvatar.camPoints = []
+            return "Successfully cleared all camera points!"
+        elif command == 'play':
+            start = base.localAvatar.camStart
+            camera = base.camera
+            track = Sequence()
+            track.append(Func(base.localAvatar.stopUpdateSmartCamera))
+            track.append(Func(camera.wrtReparentTo, render))
+            track.append(Func(camera.setPosHpr, start[0], start[1], start[2], start[3], start[4], start[5]))
+            for point in base.localAvatar.camPoints:
+                track.append(camera.posHprInterval(point[6], Point3(point[0], point[1], point[2]), Point3(point[3], point[4], point[5])))
+            track.append(Func(camera.wrtReparentTo, base.localAvatar))
+            track.append(Func(base.localAvatar.startUpdateSmartCamera))
+            track.start()
+        elif command == 'ease':
+            start = base.localAvatar.camStart
+            camera = base.camera
+            track = Sequence()
+            track.append(Func(base.localAvatar.stopUpdateSmartCamera))
+            track.append(Func(camera.wrtReparentTo, render))
+            track.append(Func(camera.setPosHpr, start[0], start[1], start[2], start[3], start[4], start[5]))
+            for point in base.localAvatar.camPoints:
+                track.append(camera.posHprInterval(point[6], Point3(point[0], point[1], point[2]), Point3(point[3], point[4], point[5]), blendType='easeInOut'))
+            track.append(Func(camera.wrtReparentTo, base.localAvatar))
+            track.append(Func(base.localAvatar.startUpdateSmartCamera))
+            track.start()
+        elif command == 'list':
+            start = base.localAvatar.camStart
+            points = "[x%d, y%d, z%d, h%d, p%d, r%d]" % (start[0], start[1], start[2], start[3], start[4], start[5])
+            for point in base.localAvatar.camPoints:
+                points = points + "\n [x%d, y%d, z%d, h%d, p%d, r%d, dur%d]" % (point[0], point[1], point[2], point[3], point[4], point[5], point[6])
+            return points
+
+class pc(MagicWord):
+    aliases = ['cacascasc']
+    desc = "Set a movie sequence"
+    execLocation = MagicWordConfig.EXEC_LOC_CLIENT
+    
+    def handleWord(self, invoker, avId, toon, *args):
+        print(base.camera)
+        print(base.localAvatar.camera)
+
+
 class ToggleCollisionsOn(MagicWord):
     aliases = ['collisionson', 'clip', 'yesclip']
     desc = "Enables collisions for the target."
@@ -625,63 +838,6 @@ class SetGravity(MagicWord):
             return "Gravity returned to normal."
         elif gravityValue == ToontownGlobals.GravityValue * 0.75:
             return "April fools gravity enabled!"
-
-
-class GetPos(MagicWord):
-    desc = "Get the current position of your toon."
-    execLocation = MagicWordConfig.EXEC_LOC_CLIENT
-
-    def handleWord(self, invoker, avId, toon, *args):
-        if not base.localAvatar:
-            return "Your Toon does not exist!"
-        return str(base.localAvatar.getPos())
-
-
-class SetPos(MagicWord):
-    desc = "Set the current position of your Toon."
-    execLocation = MagicWordConfig.EXEC_LOC_CLIENT
-    arguments = [("x", float, True), ("y", float, True), ("z", float, True)]
-
-    def handleWord(self, invoker, avId, toon, *args):
-        toonX = args[0]
-        toonY = args[1]
-        toonZ = args[2]
-        if not base.localAvatar:
-            return "Your Toon does not exist!"
-        for arg in args:
-            if not -2500 <= arg <= 2500:
-                return "This position is too far out!"
-        base.localAvatar.setPos(toonX, toonY, toonZ)
-
-
-class GetH(MagicWord):
-    desc = "Returns the rotation value of your Toon."
-    execLocation = MagicWordConfig.EXEC_LOC_CLIENT
-
-    def handleWord(self, invoker, avId, toon, *args):
-        if not base.localAvatar:
-            return "No Toon found!"
-        return str(base.localAvatar.getH())
-
-
-class SetH(MagicWord):
-    desc = "Set the rotation value of your Toon."
-    execLocation = MagicWordConfig.EXEC_LOC_CLIENT
-    arguments = [("h", int, True), ("part", str, False, '')]
-
-    def handleWord(self, invoker, avId, toon, *args):
-        toonH = args[0]
-
-        if not base.localAvatar:
-            return "No Toon found!"
-
-        part = args[1].lower()
-
-        if part in ('head', 'torso', 'legs'):
-            for lod in toon.getLODNames():
-                base.localAvatar.getPart(part, lod).setH(toonH)
-
-        base.localAvatar.setH(toonH)
 
 
 class TrueFriend(MagicWord):
@@ -944,6 +1100,35 @@ class SetName(MagicWord):
 
         toon.b_setName(nameStr)
         return "Changed %s's name to %s!" % (oldName, nameStr)
+
+class SetColor(MagicWord):
+    aliases = ["tooncolor"]
+    desc = "Set shirt color of target toon."
+    execLocation = MagicWordConfig.EXEC_LOC_SERVER
+    arguments = [("partName", str, True), ("colorId", int, False, 0)]
+
+    def handleWord(self, invoker, avId, toon, *args):
+        dna = ToonDNA.ToonDNA()
+        dna.makeFromNetString(toon.getDNAString())
+        toonParts = ['all', 'legs', 'arms', 'head']
+        toonPart = args[0]
+        toonColor = args[1]
+
+        if toonPart not in toonParts:
+            return "Invalid toon part specified!"
+        if toonColor not in ToonDNA.defaultBoyColorList:
+            return "Invalid toon color specified!"
+        if toonPart == toonParts[0]:
+            dna.headColor = toonColor
+            dna.armColor = toonColor
+            dna.legColor = toonColor
+        elif toonPart == toonParts[1]:
+            dna.legColor = toonColor
+        elif toonPart == toonParts[2]:
+            dna.armColor = toonColor
+        elif toonPart == toonParts[3]:
+            dna.headColor = toonColor
+        toon.b_setDNAString(dna.makeNetString())
 
 
 class SetTop(MagicWord):
@@ -1609,6 +1794,75 @@ class SkipCJ(MagicWord):
                 boss.enterNearVictory()
                 boss.b_setState('Victory')
                 return "Skipping final round..."
+
+class Stun(MagicWord):
+    desc = "Stuns all the lawyers in the CJ Evidence round."
+    execLocation = MagicWordConfig.EXEC_LOC_SERVER
+    accessLevel = "MODERATOR"
+
+    def handleWord(self, invoker, avId, toon, *args):
+        boss = None
+        from toontown.suit.DistributedLawbotBossAI import DistributedLawbotBossAI
+        for do in simbase.air.doId2do.values():
+            if isinstance(do, DistributedLawbotBossAI):
+                if invoker.doId in do.involvedToons:
+                    boss = do
+                    break
+        if not boss:
+            return "You aren't in a CJ!"
+        if not boss.state == 'BattleThree':
+            return "You aren't in the evidence round."
+        for suit in boss.lawyers:
+            suit.hitByToon()
+
+        return "Stunned the lawyers!"
+
+class rsc(MagicWord):
+    desc = "Restarts the scale round"
+    execLocation = MagicWordConfig.EXEC_LOC_SERVER
+    arguments = [("round", str, False, "next")]
+    accessLevel = "MODERATOR"
+
+    def handleWord(self, invoker, avId, toon, *args):
+        battle = args[0]
+        from toontown.suit.DistributedLawbotBossAI import DistributedLawbotBossAI
+        boss = None
+        for do in simbase.air.doId2do.values():
+            if isinstance(do, DistributedLawbotBossAI):
+                if invoker.doId in do.involvedToons:
+                    boss = do
+                    break
+        if not boss:
+            return "You aren't in a CJ!"
+
+        battle = battle.lower()
+        boss.exitIntroduction()
+        boss.b_setState('BattleThree')
+        return "Restarting Scale Round"
+
+class cannons(MagicWord):
+    desc = "Restarts the scale round"
+    execLocation = MagicWordConfig.EXEC_LOC_SERVER
+    arguments = [("round", str, False, "next")]
+    accessLevel = "MODERATOR"
+
+    def handleWord(self, invoker, avId, toon, *args):
+        battle = args[0]
+        from toontown.suit.DistributedLawbotBossAI import DistributedLawbotBossAI
+        boss = None
+        for do in simbase.air.doId2do.values():
+            if isinstance(do, DistributedLawbotBossAI):
+                if invoker.doId in do.involvedToons:
+                    boss = do
+                    break
+        if not boss:
+            return "You aren't in a CJ!"
+
+        battle = battle.lower()
+        boss.exitIntroduction()
+        boss.b_setState('BattleThree')
+        boss.b_setState('RollToBattleTwo')
+        return "Entering Cannon Round"
 
 
 class FillJury(MagicWord):

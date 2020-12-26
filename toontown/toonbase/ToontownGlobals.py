@@ -97,7 +97,7 @@ FM_RecoveredItem = 4
 SPDonaldsBoat = 3
 SPMinniesPiano = 4
 CEVirtual = 14
-MaxHpLimit = 137
+MaxHpLimit = 1337
 MaxCarryLimit = 80
 MaxQuestCarryLimit = 4
 CogImmuneColor = Vec4(1, 1, 1, 1)
@@ -1137,7 +1137,7 @@ LawbotBossInjusticePosHpr = (-3,
  90,
  0,
  0)
-LawbotBossInjusticeScale = (1.75, 1.75, 1.5)
+LawbotBossInjusticeScale = (0.0001, 0.0001, 0.0001)
 LawbotBossDefensePanDamage = 1
 LawbotBossLawyerPosHprs = [(-57,
   -24,
@@ -1198,10 +1198,16 @@ LawbotBossLawyerPosHprs = [(-57,
   0,
   -180,
   0,
+  0),
+ (-30,
+  16.5,
+  0,
+  -180,
+  0,
   0)]
-LawbotBossLawyerCycleTime = 6
+LawbotBossLawyerCycleTime = 999999999
 LawbotBossLawyerToPanTime = 2.5
-LawbotBossLawyerChanceToAttack = 50
+LawbotBossLawyerChanceToAttack = 100
 LawbotBossLawyerHeal = 2
 LawbotBossLawyerStunTime = 5
 LawbotBossDifficultySettings = [(38,
@@ -1253,7 +1259,7 @@ LawbotBossDifficultySettings = [(38,
   1,
   1),
  (22,
-  8,
+  0,
   10,
   4,
   1,
@@ -1386,7 +1392,7 @@ LawbotBossChairRow2PosB = (75.1, 48, 28.2)
 LawbotBossChairRow2PosA = (75.1, -18.2, 28.2)
 LawbotBossCannonBallMax = 12
 LawbotBossJuryBoxStartPos = (94, -8, 5)
-LawbotBossJuryBoxRelativeEndPos = (30, 0, 12.645)
+LawbotBossJuryBoxRelativeEndPos = (-100, 0, 12.645)
 LawbotBossJuryBoxMoveTime = 70
 LawbotBossJurorsForBalancedScale = 8
 LawbotBossDamagePerJuror = 68
@@ -1399,12 +1405,12 @@ LawbotBossWitnessEpiloguePosHpr = (-3,
  180,
  0,
  0)
-LawbotBossChanceForTaunt = 25
-LawbotBossBonusWaitTime = 60
-LawbotBossBonusDuration = 20
+LawbotBossChanceForTaunt = 0
+LawbotBossBonusWaitTime = 2
+LawbotBossBonusDuration = 2
 LawbotBossBonusToonup = 10
 LawbotBossBonusWeightMultiplier = 2
-LawbotBossChanceToDoAreaAttack = 11
+LawbotBossChanceToDoAreaAttack = 0
 LOW_POP_JP = 0
 MID_POP_JP = 100
 HIGH_POP_JP = 200
